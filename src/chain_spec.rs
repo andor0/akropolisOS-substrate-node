@@ -1,4 +1,4 @@
-use primitives::{ed25519, sr25519, Pair};
+use primitives::{crypto::UncheckedInto, ed25519, sr25519, Pair};
 use akropolisos_substrate_node_runtime::{
 	AccountId, Perbill, Permill, Schedule, GenesisConfig, ConsensusConfig, TimestampConfig, BalancesConfig,
 	SudoConfig, IndicesConfig, SessionConfig, StakingConfig, DemocracyConfig, CouncilVotingConfig,
@@ -23,6 +23,7 @@ pub enum Alternative {
 	Development,
 	/// Whatever the current runtime is, with simple Alice/Bob auths.
 	LocalTestnet,
+	Akropolis,
 }
 
 fn authority_key(s: &str) -> AuthorityId {
@@ -35,6 +36,16 @@ fn account_key(s: &str) -> AccountId {
 	sr25519::Pair::from_string(&format!("//{}", s), None)
 		.expect("static values are valid; qed")
 		.public()
+}
+
+fn akropolis_authority_key() -> AuthorityId {
+    [ 111, 143, 167, 90, 82, 249, 149, 189, 86, 187, 159, 66, 62, 186, 178, 156, 77,
+      199, 13, 158, 140, 238, 131, 223, 62, 136, 244, 108, 211, 80, 30, 36 ].unchecked_into()
+}
+
+fn akropolis_account_key() -> AccountId {
+    [ 172, 9, 58, 226, 196, 181, 204, 98, 172, 165, 206, 202, 150, 30, 211, 189, 58,
+      214, 93, 15, 220, 195, 203, 210, 6, 16, 157, 90, 185, 112, 225, 113 ].unchecked_into()
 }
 
 impl Alternative {
@@ -79,6 +90,22 @@ impl Alternative {
 				None,
 				None
 			),
+			Alternative::Akropolis => ChainSpec::from_genesis(
+				"Akropolis",
+				"akropolis",
+				|| testnet_genesis(vec![
+                    akropolis_authority_key()
+				], vec![
+                    akropolis_account_key()
+				],
+                    akropolis_account_key()
+				),
+				vec![],
+				None,
+				None,
+				None,
+				None
+			),
 		})
 	}
 
@@ -86,6 +113,7 @@ impl Alternative {
 		match s {
 			"dev" => Some(Alternative::Development),
 			"" | "local" => Some(Alternative::LocalTestnet),
+			"akropolis" => Some(Alternative::Akropolis),
 			_ => None,
 		}
 	}
@@ -110,7 +138,7 @@ fn testnet_genesis(initial_authorities: Vec<AuthorityId>, endowed_accounts: Vec<
 			existential_deposit: 500,
 			transfer_fee: 0,
 			creation_fee: 0,
-			balances: endowed_accounts.iter().cloned().map(|k|(k, 1 << 60)).collect(),
+			balances: endowed_accounts.iter().cloned().map(|k|(k, 4_000_000_000_000_000_000_000)).collect(),
 			vesting: vec![],
 		}),
 		sudo: Some(SudoConfig {
